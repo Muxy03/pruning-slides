@@ -15,6 +15,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     auto = subparsers.add_parser("auto", help="remove text-progression slides")
     _add_files(auto)
+    auto.add_argument("--keep", help="pages to always keep, e.g. 2,3,10-12")
 
     manual = subparsers.add_parser("manual", help="keep only explicitly selected pages")
     _add_files(manual)
@@ -37,6 +38,8 @@ def prune(input_path: Path, output_path: Path, mode: str, keep: str | None = Non
     else:
         texts = [page.extract_text() or "" for page in reader.pages]
         removed = intermediate_pages(texts)
+        if keep:
+            removed -= set(parse_pages(keep, len(reader.pages)))
         indexes = [index for index in range(len(reader.pages)) if index not in removed]
 
     if not indexes:
