@@ -17,7 +17,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     auto = subparsers.add_parser("auto", help="remove text-progression slides")
     _add_files(auto)
-    auto.add_argument("--keep", help="pages to always keep, e.g. 2,3,10-12")
+    auto.add_argument(
+        "--keep",
+        help="pages to always keep, e.g. 2,3,10-12; comma-separated applies to every file",
+    )
 
     manual = subparsers.add_parser("manual", help="keep only explicitly selected pages")
     _add_files(manual)
@@ -85,7 +88,9 @@ def prune(input_path: Path, output_path: Path, mode: str, keep: str | None = Non
 def prune_folder(input_dir: Path, output_dir: Path, mode: str, keep: str | None = None) -> int:
     """Prune direct PDF files in a folder without changing the originals."""
     files = sorted(
-        path for path in input_dir.glob("*.pdf") if not path.stem.endswith("-pruned")
+        path
+        for path in input_dir.glob("*.pdf")
+        if not path.stem.endswith("-pruned") and not path.name.endswith(".repaired.pdf")
     )
     if not files:
         raise ValueError(f"no PDF files found in {input_dir}")
