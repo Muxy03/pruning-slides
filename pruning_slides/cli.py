@@ -57,21 +57,23 @@ def _repair(input_path: Path) -> Path:
     return temporary
 
 
+def _selected_pages(reader: PdfReader, mode: str, keep: str | None) -> list[int]:
+    if mode == "manual":
+        return parse_pages(keep or "", len(reader.pages))
+    texts = [page.extract_text() or "" for page in reader.pages]
+    removed = intermediate_pages(texts)
+    if keep:
+        removed -= set(parse_pages(keep, len(reader.pages)))
+    return [index for index in range(len(reader.pages)) if index not in removed]
+
+
 def prune(input_path: Path, output_path: Path, mode: str, keep: str | None = None) -> int:
     source = _repair(input_path) if mode == "auto" else input_path
     try:
         reader = PdfReader(str(source))
         if not reader.pages:
             raise ValueError("input PDF has no pages")
-
-        if mode == "manual":
-            indexes = parse_pages(keep or "", len(reader.pages))
-        else:
-            texts = [page.extract_text() or "" for page in reader.pages]
-            removed = intermediate_pages(texts)
-            if keep:
-                removed -= set(parse_pages(keep, len(reader.pages)))
-            indexes = [index for index in range(len(reader.pages)) if index not in removed]
+        indexes = _selected_pages(reader, mode, keep)
 
         if not indexes:
             raise ValueError("selection would produce an empty PDF")
