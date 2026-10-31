@@ -1,60 +1,71 @@
 # pruning-slides
 
-Command-line tool for removing intermediate build slides from a PDF deck.
+Command-line tool that removes intermediate slides from a PDF deck, keeping standalone and final/complete slides.
 
 ## Requirements
 
 - Python 3.10+
 - [uv](https://docs.astral.sh/uv/)
 
-## Install with uv
+## Install
 
 ```bash
 uv sync
 ```
 
-## Automatic content progression
+## Automatic mode
 
-Keeps standalone slides and the final slide in each evolution run. An
-evolution run is a contiguous sequence whose extracted slide/header line is
-the same; the final page is treated as the complete version. A `X/X` slide
-counter is not required.
+Removes intermediate slides. An evolution run is a sequence of pages that
+repeat the same slide header; the final page is kept as the complete version.
 
 ```bash
 uv run prune-slides auto deck.pdf -o deck-pruned.pdf
 ```
 
-If two same-header pages are separate completed slides, force them to remain:
+No `X/X` slide counter is required.
+
+If same-header pages are actually separate completed slides, force them to stay:
 
 ```bash
 uv run prune-slides auto deck.pdf --keep 2,3 -o deck-pruned.pdf
 ```
 
-This is useful when the PDF has no metadata distinguishing separate slides
-from animation overlays. Page numbers are 1-based.
+Page numbers are 1-based.
 
-To process every PDF directly inside a folder, use a separate output folder:
-
-```bash
-uv run prune-slides auto decks/ -o pruned-decks/
-```
-
-Each result is named `<original-name>-pruned.pdf`; originals are not changed.
+Automatic mode repairs the input with Ghostscript before parsing when
+available; otherwise it uses the original file.
 
 This is intentionally conservative: image-only slides and slides whose text
 cannot be extracted are kept.
 
-Automatic mode repairs the input with Ghostscript before parsing when
-available, reducing malformed PDF warnings. If Ghostscript is missing, it uses
-the original file.
+## Manual mode
 
-## Manual selection
-
-Page numbers are 1-based. Use comma-separated pages and ranges:
+Keep only the pages you choose.
 
 ```bash
 uv run prune-slides manual deck.pdf --keep 1,4,7-9 -o deck-selected.pdf
 ```
 
+## Folder mode
+
+Process every PDF directly inside a folder, writing `<name>-pruned.pdf` per file
+to a separate output folder. Originals are not changed.
+
+```bash
+uv run prune-slides auto decks/ -o pruned-decks/
+```
+
 The same `manual` command works with a folder, applying the page selection to
 each PDF.
+
+## Development
+
+Run the tests with:
+
+```bash
+uv run pytest
+```
+
+## License
+
+MIT — see [LICENSE](LICENSE).
