@@ -101,7 +101,11 @@ def prune_folder(input_dir: Path, output_dir: Path, mode: str, keep: str | None 
     removed = 0
     for input_path in files:
         output_path = output_dir / f"{input_path.stem}-pruned.pdf"
-        removed += prune(input_path, output_path, mode, keep)
+        try:
+            removed += prune(input_path, output_path, mode, keep)
+        except (OSError, ValueError, PdfReadError) as error:
+            print(f"prune-slides: skipping {input_path}: {error}", file=sys.stderr)
+            continue
         print(f"Wrote {output_path}.")
     return removed
 

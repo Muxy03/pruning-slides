@@ -36,3 +36,23 @@ def test_auto_prune_cleans_up_the_repaired_temp_file(tmp_path: Path, monkeypatch
     assert removed == 0
     assert not temp_path.exists()
     assert input_path.exists()
+
+
+def test_prune_folder_writes_one_pruned_pdf_per_input(tmp_path: Path) -> None:
+    input_dir = tmp_path / "in"
+    output_dir = tmp_path / "out"
+    input_dir.mkdir()
+    output_dir.mkdir()
+    for name in ("a", "b"):
+        writer = PdfWriter()
+        writer.add_blank_page(width=100, height=100)
+        with (input_dir / f"{name}.pdf").open("wb") as stream:
+            writer.write(stream)
+
+    removed = cli.prune_folder(input_dir, output_dir, mode="manual", keep="1")
+
+    assert removed == 0
+    assert (output_dir / "a-pruned.pdf").exists()
+    assert (output_dir / "b-pruned.pdf").exists()
+    assert (input_dir / "a.pdf").exists()
+    assert (input_dir / "b.pdf").exists()
