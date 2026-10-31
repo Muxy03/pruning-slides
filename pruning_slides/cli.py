@@ -53,7 +53,6 @@ def _repair(input_path: Path) -> Path:
         return input_path
     return temporary
 
-
 def prune(input_path: Path, output_path: Path, mode: str, keep: str | None = None) -> int:
     source = _repair(input_path) if mode == "auto" else input_path
     reader = PdfReader(str(source))

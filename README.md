@@ -44,6 +44,10 @@ Each result is named `<original-name>-pruned.pdf`; originals are not changed.
 This is intentionally conservative: image-only slides and slides whose text
 cannot be extracted are kept.
 
+Automatic mode repairs the input with Ghostscript before parsing when
+available, reducing malformed PDF warnings. If Ghostscript is missing, it uses
+the original file.
+
 ## Manual selection
 
 Page numbers are 1-based. Use comma-separated pages and ranges:
