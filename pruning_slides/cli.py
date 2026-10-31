@@ -1,6 +1,8 @@
 """Command-line interface for pruning PDF slide decks."""
 
 import argparse
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -28,8 +30,33 @@ def _add_files(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("-o", "--output", type=Path, required=True, help="output PDF or folder")
 
 
+def _repair(input_path: Path) -> Path:
+    """Return a Ghostscript-repaired copy, or the original when unavailable."""
+    temporary = input_path.with_name(f"{input_path.stem}.repaired.pdf")
+    try:
+        subprocess.run(
+            [
+                "gs",
+                "-q",
+                "-sDEVICE=pdfwrite",
+                "-dNOPAUSE",
+                "-dBATCH",
+                "-sOutputFile=" + str(temporary),
+                str(input_path),
+            ],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        temporary.unlink(missing_ok=True)
+        return input_path
+    return temporary
+
+
 def prune(input_path: Path, output_path: Path, mode: str, keep: str | None = None) -> int:
-    reader = PdfReader(str(input_path))
+    source = _repair(input_path) if mode == "auto" else input_path
+    reader = PdfReader(str(source))
     if not reader.pages:
         raise ValueError("input PDF has no pages")
 
@@ -52,6 +79,7 @@ def prune(input_path: Path, output_path: Path, mode: str, keep: str | None = Non
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("wb") as stream:
         writer.write(stream)
+    source.unlink(missing_ok=True)
     return len(reader.pages) - len(indexes)
 
 
