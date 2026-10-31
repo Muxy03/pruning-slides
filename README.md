@@ -4,7 +4,7 @@ Command-line tool for removing intermediate build slides from a PDF deck.
 
 ## Requirements
 
-- Python 3.9+
+- Python 3.10+
 - [uv](https://docs.astral.sh/uv/)
 
 ## Install with uv

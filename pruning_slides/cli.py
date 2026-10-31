@@ -1,12 +1,12 @@
 """Command-line interface for pruning PDF slide decks."""
 
 import argparse
-import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 from pypdf import PdfReader, PdfWriter
+from pypdf.errors import PdfReadError
 
 from .core import intermediate_pages, parse_pages
 
@@ -56,33 +56,37 @@ def _repair(input_path: Path) -> Path:
         return input_path
     return temporary
 
+
 def prune(input_path: Path, output_path: Path, mode: str, keep: str | None = None) -> int:
     source = _repair(input_path) if mode == "auto" else input_path
-    reader = PdfReader(str(source))
-    if not reader.pages:
-        raise ValueError("input PDF has no pages")
+    try:
+        reader = PdfReader(str(source))
+        if not reader.pages:
+            raise ValueError("input PDF has no pages")
 
-    if mode == "manual":
-        indexes = parse_pages(keep or "", len(reader.pages))
-    else:
-        texts = [page.extract_text() or "" for page in reader.pages]
-        removed = intermediate_pages(texts)
-        if keep:
-            removed -= set(parse_pages(keep, len(reader.pages)))
-        indexes = [index for index in range(len(reader.pages)) if index not in removed]
+        if mode == "manual":
+            indexes = parse_pages(keep or "", len(reader.pages))
+        else:
+            texts = [page.extract_text() or "" for page in reader.pages]
+            removed = intermediate_pages(texts)
+            if keep:
+                removed -= set(parse_pages(keep, len(reader.pages)))
+            indexes = [index for index in range(len(reader.pages)) if index not in removed]
 
-    if not indexes:
-        raise ValueError("selection would produce an empty PDF")
-    writer = PdfWriter()
-    for index in indexes:
-        writer.add_page(reader.pages[index])
-    if reader.metadata:
-        writer.add_metadata(dict(reader.metadata))
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("wb") as stream:
-        writer.write(stream)
-    source.unlink(missing_ok=True)
-    return len(reader.pages) - len(indexes)
+        if not indexes:
+            raise ValueError("selection would produce an empty PDF")
+        writer = PdfWriter()
+        for index in indexes:
+            writer.add_page(reader.pages[index])
+        if reader.metadata:
+            writer.add_metadata(dict(reader.metadata))
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with output_path.open("wb") as stream:
+            writer.write(stream)
+        return len(reader.pages) - len(indexes)
+    finally:
+        if source != input_path:
+            source.unlink(missing_ok=True)
 
 
 def prune_folder(input_dir: Path, output_dir: Path, mode: str, keep: str | None = None) -> int:
@@ -112,7 +116,7 @@ def main(argv: list[str] | None = None) -> int:
             removed = prune_folder(args.input, args.output, args.mode, keep)
         else:
             removed = prune(args.input, args.output, args.mode, keep)
-    except (OSError, ValueError) as error:
+    except (OSError, ValueError, PdfReadError) as error:
         print(f"prune-slides: {error}", file=sys.stderr)
         return 2
     if args.input.is_dir():
